@@ -169,166 +169,198 @@ export default function App() {
 
   doc.save(`pret-${loan.name}.pdf`);
 };
-``
+
+	const btnStyle = {
+  background: "#3498db",
+  color: "white",
+  padding: "10px 15px",
+  border: "none",
+  borderRadius: 5,
+  cursor: "pointer",
+  marginTop: 10
+};
+
+const secondaryBtn = {
+  background: "#95a5a6",
+  color: "white",
+  padding: "8px 12px",
+  border: "none",
+  borderRadius: 5,
+  cursor: "pointer",
+  marginTop: 10
+};
+
+const dangerBtn = {
+  background: "#e74c3c",
+  color: "white",
+  marginLeft: 10,
+  border: "none",
+  borderRadius: 5,
+  cursor: "pointer"
+};
+
+const inputStyle = {
+  display: "block",
+  marginBottom: 10,
+  padding: 10,
+  width: "100%",
+  maxWidth: 300,
+  borderRadius: 5,
+  border: "1px solid #ccc"
+};
+
+const cardStyle = {
+  border: "1px solid #ddd",
+  borderRadius: 10,
+  padding: 15,
+  marginTop: 10,
+  background: "#fafafa"
+};
+
+const signatureStyle = {
+  width: 200,
+  marginTop: 10,
+  background: "white",
+  border: "1px solid #ccc"
+};
 
   return (
-    <div style={{ padding: 20 }}>
+  <div style={{ 
+    padding: 30, 
+    backgroundColor: "#f5f6fa", 
+    fontFamily: "Arial, sans-serif" 
+  }}>
 
-      {/* ✅ BLACKLIST */}
-      <h2>Blacklist</h2>
+    {/* BLACKLIST */}
+    <div style={{ background: "white", padding: 20, borderRadius: 10, marginBottom: 20 }}>
+      <h2>🚫 Blacklist</h2>
 
       <input
         placeholder="Nom à blacklist"
         value={newBlacklistName}
         onChange={(e) => setNewBlacklistName(e.target.value)}
+        style={{ padding: 10, marginRight: 10 }}
       />
-      <button onClick={handleAddBlacklist}>Ajouter</button>
+
+      <button onClick={handleAddBlacklist} style={btnStyle}>
+        Ajouter
+      </button>
 
       <ul>
         {blacklist.map((name, i) => (
           <li key={i}>
             {name}
-            <button onClick={() => handleRemoveBlacklist(name)}>❌</button>
+            <button onClick={() => handleRemoveBlacklist(name)} style={dangerBtn}>
+              ❌
+            </button>
           </li>
         ))}
       </ul>
+    </div>
 
-      <hr />
+    {/* FORMULAIRE */}
+    <div style={{ background: "white", padding: 20, borderRadius: 10, marginBottom: 20 }}>
+      <h2>📦 Nouveau prêt</h2>
 
-      {/* ✅ FORMULAIRE */}
-      <h2>Nouveau prêt</h2>
-
-      <p>Nom :</p>
-      <input
-        value={form.name}
-        onChange={(e) => setForm({ ...form, name: e.target.value })}
-      />
-
-      <p>Matériel :</p>
-      <input
-        value={form.type}
-        onChange={(e) => setForm({ ...form, type: e.target.value })}
-      />
-
-      <p>Code :</p>
-      <input
-        value={form.code}
-        onChange={(e) => setForm({ ...form, code: e.target.value })}
-      />
+      {["name", "type", "code"].map((field) => (
+        <input
+          key={field}
+          placeholder={field.toUpperCase()}
+          value={form[field]}
+          onChange={(e) => setForm({ ...form, [field]: e.target.value })}
+          style={inputStyle}
+        />
+      ))}
 
       <p>Date de début :</p>
-      <input
-        type="date"
+      <input type="date"
         value={form.startDate}
         onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+        style={inputStyle}
       />
 
-      <p>Date de retour théorique :</p>
-      <input
-        type="date"
+      <p>Date retour théorique :</p>
+      <input type="date"
         value={form.expectedReturnDate}
         onChange={(e) => setForm({ ...form, expectedReturnDate: e.target.value })}
+        style={inputStyle}
       />
 
-      {/* ✅ SIGNATURE EMPRUNT */}
-      <p>Signature emprunt :</p>
+      <p>Signature :</p>
       <SignatureCanvas
         ref={sigRef}
         canvasProps={{
           width: 300,
           height: 100,
-          style: { border: "1px solid white" }
+          style: { border: "1px solid #ccc", borderRadius: 5 }
         }}
       />
 
-      <button onClick={() => sigRef.current.clear()}>Effacer</button>
+      <button onClick={() => sigRef.current.clear()} style={secondaryBtn}>
+        Effacer
+      </button>
 
       <br /><br />
-      <button onClick={handleAdd}>Ajouter prêt</button>
 
-      <hr />
+      <button onClick={handleAdd} style={btnStyle}>
+        ➕ Ajouter prêt
+      </button>
+    </div>
 
-      {/* ✅ LISTE */}
-      <h2>Liste des prêts</h2>
+    {/* LISTE */}
+    <div style={{ background: "white", padding: 20, borderRadius: 10 }}>
+      <h2>📋 Liste des prêts</h2>
 
       {loans.length === 0 && <p>Aucun prêt</p>}
 
       {loans.map((loan) => (
-        <div key={loan.id} style={{ border: "1px solid black", marginTop: 10, padding: 10 }}>
+        <div key={loan.id} style={cardStyle}>
 
-          <p><b>{loan.name}</b> - {loan.type}</p>
-          <p>Retour prévu : {loan.expectedReturnDate}</p>
+          <h3>{loan.name}</h3>
 
-          {/* ✅ affichage signature */}
+          <p>📦 {loan.type}</p>
+          <p>📅 Début : {loan.startDate}</p>
+          <p>📅 Retour prévu : {loan.expectedReturnDate}</p>
+
           {loan.signature && (
-            <>
-              <p>Signature :</p>
-              <img
-  src={loan.signature}
-  alt="signature"
-  
-style={{
-  width: 200,
-  background: "white",
-  padding: 5,
-  borderRadius: 5
-}}
-
-/>
-
-            </>
+            <img src={loan.signature} style={signatureStyle} />
           )}
 
           {!loan.returned ? (
             <>
-              <p style={{ color: "orange" }}>En cours</p>
+              <p style={{ color: "orange" }}>🟡 En cours</p>
 
               <SignatureCanvas
                 ref={(ref) => (sigReturnRefs.current[loan.id] = ref)}
                 canvasProps={{
                   width: 300,
                   height: 100,
-                  style: { border: "1px solid black" }
+                  style: { border: "1px solid #ccc", borderRadius: 5 }
                 }}
               />
 
-              <button onClick={() => handleReturn(loan.id)}>
-                Valider retour
+              <button onClick={() => handleReturn(loan.id)} style={btnStyle}>
+                ✅ Valider retour
               </button>
             </>
           ) : (
             <>
-              <p style={{ color: "green" }}>
-                ✅ Rendu le {loan.realReturnDate}
-              </p>
+              <p style={{ color: "green" }}>✅ Rendu le {loan.realReturnDate}</p>
 
               {loan.returnSignature && (
-                <>
-                  <p>Signature retour :</p>
-                  <img
-			src={loan.returnSignature}
-			alt="signature retour"
-  
-			style={{
-			width: 200,
-			background: "white",
-			padding: 5,
-			borderRadius: 5
-			}}
-
-			/>
-
-                </>
+                <img src={loan.returnSignature} style={signatureStyle} />
               )}
             </>
           )}
 
-          <button onClick={() => generatePDF(loan)}>
-            📄 Générer PDF
+          <button onClick={() => generatePDF(loan)} style={secondaryBtn}>
+            📄 PDF
           </button>
 
         </div>
       ))}
     </div>
-  );
-}
+
+  </div>
+);
+)
