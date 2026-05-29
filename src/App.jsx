@@ -112,7 +112,7 @@ export default function App() {
     const doc = new jsPDF();
 
     try {
-      doc.addImage(logo1, "PNG", 10, 10, 40, 20);
+      doc.addImage(logo1, "PNG", 10, 10, 60, 20);
     } catch (e) {} // ✅ évite crash si logo absent
 
     doc.setFontSize(18);
@@ -141,7 +141,7 @@ export default function App() {
     }
 
     try {
-      doc.addImage(logo2, "PNG", 140, 260, 50, 20);
+      doc.addImage(logo2, "PNG", 140, 260, 60, 20);
     } catch (e) {}
 
     doc.save(`pret-${loan.name}.pdf`);
