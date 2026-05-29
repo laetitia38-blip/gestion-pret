@@ -2,10 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import SignatureCanvas from "react-signature-canvas";
 import jsPDF from "jspdf";
 import { createClient } from "@supabase/supabase-js";
-import logo1 from "./assets/logo1.png";
-import logo2 from "./assets/logo2.png";
-
-// trigger deploy
 
 // ✅ connexion Supabase
 const supabase = createClient(
@@ -35,48 +31,33 @@ export default function App() {
     fetchBlacklist();
   }, []);
 
-  // ✅ charger prêts
   const fetchLoans = async () => {
     const { data } = await supabase.from("loans").select("*");
     setLoans(data || []);
   };
 
-  // ✅ charger blacklist
   const fetchBlacklist = async () => {
     const { data } = await supabase.from("blacklist").select("*");
     setBlacklist((data || []).map((b) => b.name));
   };
 
-  // ✅ AJOUT PRÊT (avec signature optimisée)
+  // ✅ AJOUT PRET
   const handleAdd = async () => {
 
     let signature = null;
 
     if (sigRef.current && !sigRef.current.isEmpty()) {
-      // ✅ compression signature
       signature = sigRef.current.toDataURL("image/png", 0.5);
     }
 
-    if (blacklist.includes(form.name)) {
-      alert("⚠️ PERSONNE BLACKLISTÉE !");
-    }
-
-    const { error } = await supabase.from("loans").insert([
+    await supabase.from("loans").insert([
       {
         ...form,
-        signature: signature,
+        signature,
         returned: false
       }
     ]);
 
-    console.log("INSERT ERROR:", error);
-
-    if (error) {
-      alert("Erreur insertion !");
-      return;
-    }
-
-    // reset
     setForm({
       name: "",
       type: "",
@@ -87,13 +68,13 @@ export default function App() {
 
     if (sigRef.current) sigRef.current.clear();
 
-    await fetchLoans();
+    fetchLoans();
   };
 
-  // ✅ RETOUR MATÉRIEL
+  // ✅ RETOUR
   const handleReturn = async (id) => {
-
     const sigPad = sigReturnRefs.current[id];
+
     let signature = null;
 
     if (sigPad && !sigPad.isEmpty()) {
@@ -105,11 +86,11 @@ export default function App() {
       .update({
         returned: true,
         realReturnDate: new Date().toISOString().split("T")[0],
-        returnSignature: signature
+        returnSignature: signature,
       })
       .eq("id", id);
 
-    await fetchLoans();
+    fetchLoans();
   };
 
   // ✅ BLACKLIST
@@ -126,7 +107,7 @@ export default function App() {
     fetchBlacklist();
   };
 
-  // ✅ PDF AVEC SIGNATURE
+// ✅ PDF AVEC SIGNATURE
 	const generatePDF = (loan) => {
   const doc = new jsPDF();
 
@@ -170,7 +151,127 @@ export default function App() {
   doc.save(`pret-${loan.name}.pdf`);
 };
 
-	const btnStyle = {
+  return (
+    <div style={{ padding: 30, backgroundColor: "#f5f6fa", fontFamily: "Arial" }}>
+
+      {/* BLACKLIST */}
+      <div style={{ background: "white", padding: 20, borderRadius: 10, marginBottom: 20 }}>
+        <h2>🚫 Blacklist</h2>
+
+        <input
+          placeholder="Nom"
+          value={newBlacklistName}
+          onChange={(e) => setNewBlacklistName(e.target.value)}
+          style={inputStyle}
+        />
+
+        <button onClick={handleAddBlacklist} style={btnStyle}>Ajouter</button>
+
+        <ul>
+          {blacklist.map((name, i) => (
+            <li key={i}>
+              {name}
+              <button onClick={() => handleRemoveBlacklist(name)} style={dangerBtn}>❌</button>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* FORMULAIRE */}
+      <div style={{ background: "white", padding: 20, borderRadius: 10, marginBottom: 20 }}>
+        <h2>📦 Nouveau prêt</h2>
+
+        <input placeholder="Nom" value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          style={inputStyle}
+        />
+
+        <input placeholder="Matériel" value={form.type}
+          onChange={(e) => setForm({ ...form, type: e.target.value })}
+          style={inputStyle}
+        />
+
+        <input placeholder="Code" value={form.code}
+          onChange={(e) => setForm({ ...form, code: e.target.value })}
+          style={inputStyle}
+        />
+
+        <input type="date"
+          value={form.startDate}
+          onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+          style={inputStyle}
+        />
+
+        <input type="date"
+          value={form.expectedReturnDate}
+          onChange={(e) => setForm({ ...form, expectedReturnDate: e.target.value })}
+          style={inputStyle}
+        />
+
+        <p>Signature :</p>
+        <SignatureCanvas ref={sigRef} canvasProps={{ width: 300, height: 100, style: { border: "1px solid #ccc" } }} />
+
+        <button onClick={() => sigRef.current.clear()} style={secondaryBtn}>Effacer</button>
+
+        <br /><br />
+
+        <button onClick={handleAdd} style={btnStyle}>Ajouter prêt</button>
+      </div>
+
+      {/* LISTE */}
+      <div style={{ background: "white", padding: 20, borderRadius: 10 }}>
+        <h2>📋 Liste des prêts</h2>
+
+        {loans.length === 0 && <p>Aucun prêt</p>}
+
+        {loans.map((loan) => (
+          <div key={loan.id} style={cardStyle}>
+
+            <h3>{loan.name}</h3>
+
+            <p>📦 {loan.type}</p>
+            <p>Début : {loan.startDate}</p>
+            <p>Retour : {loan.expectedReturnDate}</p>
+
+            {loan.signature && (
+              <img src={loan.signature} style={signatureStyle} />
+            )}
+
+            {!loan.returned ? (
+              <>
+                <p style={{ color: "orange" }}>En cours</p>
+
+                <SignatureCanvas
+                  ref={(ref) => (sigReturnRefs.current[loan.id] = ref)}
+                  canvasProps={{ width: 300, height: 100, style: { border: "1px solid #ccc" } }}
+                />
+
+                <button onClick={() => handleReturn(loan.id)} style={btnStyle}>
+                  Valider retour
+                </button>
+              </>
+            ) : (
+              <>
+                <p style={{ color: "green" }}>✅ Rendu le {loan.realReturnDate}</p>
+
+                {loan.returnSignature && (
+                  <img src={loan.returnSignature} style={signatureStyle} />
+                )}
+              </>
+            )}
+
+            <button onClick={() => generatePDF(loan)} style={secondaryBtn}>PDF</button>
+
+          </div>
+        ))}
+      </div>
+
+    </div>
+  );
+}
+
+// ✅ STYLES
+const btnStyle = {
   background: "#3498db",
   color: "white",
   padding: "10px 15px",
@@ -220,147 +321,5 @@ const cardStyle = {
 const signatureStyle = {
   width: 200,
   marginTop: 10,
-  background: "white",
   border: "1px solid #ccc"
 };
-
-  return (
-  <div style={{ 
-    padding: 30, 
-    backgroundColor: "#f5f6fa", 
-    fontFamily: "Arial, sans-serif" 
-  }}>
-
-    {/* BLACKLIST */}
-    <div style={{ background: "white", padding: 20, borderRadius: 10, marginBottom: 20 }}>
-      <h2>🚫 Blacklist</h2>
-
-      <input
-        placeholder="Nom à blacklist"
-        value={newBlacklistName}
-        onChange={(e) => setNewBlacklistName(e.target.value)}
-        style={{ padding: 10, marginRight: 10 }}
-      />
-
-      <button onClick={handleAddBlacklist} style={btnStyle}>
-        Ajouter
-      </button>
-
-      <ul>
-        {blacklist.map((name, i) => (
-          <li key={i}>
-            {name}
-            <button onClick={() => handleRemoveBlacklist(name)} style={dangerBtn}>
-              ❌
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-
-    {/* FORMULAIRE */}
-    <div style={{ background: "white", padding: 20, borderRadius: 10, marginBottom: 20 }}>
-      <h2>📦 Nouveau prêt</h2>
-
-      {["name", "type", "code"].map((field) => (
-        <input
-          key={field}
-          placeholder={field.toUpperCase()}
-          value={form[field]}
-          onChange={(e) => setForm({ ...form, [field]: e.target.value })}
-          style={inputStyle}
-        />
-      ))}
-
-      <p>Date de début :</p>
-      <input type="date"
-        value={form.startDate}
-        onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-        style={inputStyle}
-      />
-
-      <p>Date retour théorique :</p>
-      <input type="date"
-        value={form.expectedReturnDate}
-        onChange={(e) => setForm({ ...form, expectedReturnDate: e.target.value })}
-        style={inputStyle}
-      />
-
-      <p>Signature :</p>
-      <SignatureCanvas
-        ref={sigRef}
-        canvasProps={{
-          width: 300,
-          height: 100,
-          style: { border: "1px solid #ccc", borderRadius: 5 }
-        }}
-      />
-
-      <button onClick={() => sigRef.current.clear()} style={secondaryBtn}>
-        Effacer
-      </button>
-
-      <br /><br />
-
-      <button onClick={handleAdd} style={btnStyle}>
-        ➕ Ajouter prêt
-      </button>
-    </div>
-
-    {/* LISTE */}
-    <div style={{ background: "white", padding: 20, borderRadius: 10 }}>
-      <h2>📋 Liste des prêts</h2>
-
-      {loans.length === 0 && <p>Aucun prêt</p>}
-
-      {loans.map((loan) => (
-        <div key={loan.id} style={cardStyle}>
-
-          <h3>{loan.name}</h3>
-
-          <p>📦 {loan.type}</p>
-          <p>📅 Début : {loan.startDate}</p>
-          <p>📅 Retour prévu : {loan.expectedReturnDate}</p>
-
-          {loan.signature && (
-            <img src={loan.signature} style={signatureStyle} />
-          )}
-
-          {!loan.returned ? (
-            <>
-              <p style={{ color: "orange" }}>🟡 En cours</p>
-
-              <SignatureCanvas
-                ref={(ref) => (sigReturnRefs.current[loan.id] = ref)}
-                canvasProps={{
-                  width: 300,
-                  height: 100,
-                  style: { border: "1px solid #ccc", borderRadius: 5 }
-                }}
-              />
-
-              <button onClick={() => handleReturn(loan.id)} style={btnStyle}>
-                ✅ Valider retour
-              </button>
-            </>
-          ) : (
-            <>
-              <p style={{ color: "green" }}>✅ Rendu le {loan.realReturnDate}</p>
-
-              {loan.returnSignature && (
-                <img src={loan.returnSignature} style={signatureStyle} />
-              )}
-            </>
-          )}
-
-          <button onClick={() => generatePDF(loan)} style={secondaryBtn}>
-            📄 PDF
-          </button>
-
-        </div>
-      ))}
-    </div>
-
-  </div>
-);
-)
