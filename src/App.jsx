@@ -3,6 +3,10 @@ import SignatureCanvas from "react-signature-canvas";
 import jsPDF from "jspdf";
 import { createClient } from "@supabase/supabase-js";
 
+// ✅ Import logos (OPTIONNEL : mets tes fichiers dans /src/assets/)
+import logo1 from "./assets/logo1.png";
+import logo2 from "./assets/logo2.png";
+
 // ✅ connexion Supabase
 const supabase = createClient(
   "https://drgejcbhcrhmixycuehf.supabase.co",
@@ -51,11 +55,7 @@ export default function App() {
     }
 
     await supabase.from("loans").insert([
-      {
-        ...form,
-        signature,
-        returned: false
-      }
+      { ...form, signature, returned: false }
     ]);
 
     setForm({
@@ -66,7 +66,7 @@ export default function App() {
       expectedReturnDate: "",
     });
 
-    if (sigRef.current) sigRef.current.clear();
+    sigRef.current?.clear();
 
     fetchLoans();
   };
@@ -107,91 +107,86 @@ export default function App() {
     fetchBlacklist();
   };
 
-// ✅ PDF AVEC SIGNATURE
-	const generatePDF = (loan) => {
-  const doc = new jsPDF();
+  // ✅ PDF
+  const generatePDF = (loan) => {
+    const doc = new jsPDF();
 
-  // ✅ Logo haut
-  doc.addImage(logo1, "PNG", 10, 10, 90, 20);
+    try {
+      doc.addImage(logo1, "PNG", 10, 10, 40, 20);
+    } catch (e) {} // ✅ évite crash si logo absent
 
-  // ✅ Titre plus bas
-  doc.setFontSize(18);
-  doc.text("Contrat de prêt", 105, 40, { align: "center" });
+    doc.setFontSize(18);
+    doc.text("Contrat de prêt", 105, 40, { align: "center" });
 
-  // ✅ Ligne séparation
-  doc.line(10, 45, 200, 45);
+    doc.line(10, 45, 200, 45);
 
-  // ✅ Infos
-  doc.setFontSize(12);
-  doc.text(`Nom : ${loan.name}`, 20, 60);
-  doc.text(`Matériel : ${loan.type}`, 20, 70);
-  doc.text(`Date emprunt : ${loan.startDate}`, 20, 80);
-  doc.text(`Retour prévu : ${loan.expectedReturnDate}`, 20, 90);
+    doc.setFontSize(12);
+    doc.text(`Nom : ${loan.name}`, 20, 60);
+    doc.text(`Matériel : ${loan.type}`, 20, 70);
+    doc.text(`Date emprunt : ${loan.startDate}`, 20, 80);
+    doc.text(`Retour prévu : ${loan.expectedReturnDate}`, 20, 90);
 
-  // ✅ Date de signature retour
-  if (loan.realReturnDate) {
-    doc.text(`Date de retour réel : ${loan.realReturnDate}`, 20, 100);
-  }
+    if (loan.realReturnDate) {
+      doc.text(`Retour : ${loan.realReturnDate}`, 20, 100);
+    }
 
-  // ✅ Signature emprunt
-  if (loan.signature) {
-    doc.text("Signature emprunt :", 20, 110);
-    doc.addImage(loan.signature, "PNG", 75, 120, 60, 30);
-  }
+    if (loan.signature) {
+      doc.text("Signature emprunt", 105, 120, { align: "center" });
+      doc.addImage(loan.signature, "PNG", 75, 130, 60, 30);
+    }
 
-  // ✅ Signature retour
-  if (loan.returnSignature) {
-    doc.text("Signature retour :", 20, 160);
-    doc.addImage(loan.returnSignature, "PNG", 75, 170, 60, 30);
-  }
+    if (loan.returnSignature) {
+      doc.text("Signature retour", 105, 170, { align: "center" });
+      doc.addImage(loan.returnSignature, "PNG", 75, 180, 60, 30);
+    }
 
-  // ✅ Logo bas droite
-  doc.addImage(logo2, "PNG", 140, 250, 65, 20);
+    try {
+      doc.addImage(logo2, "PNG", 140, 260, 50, 20);
+    } catch (e) {}
 
-  doc.save(`pret-${loan.name}.pdf`);
-};
+    doc.save(`pret-${loan.name}.pdf`);
+  };
 
   return (
-    <div style={{ padding: 30, backgroundColor: "#f5f6fa", fontFamily: "Arial" }}>
+    <div style={{ padding: 30, background: "#f5f6fa", fontFamily: "Arial" }}>
 
       {/* BLACKLIST */}
-      <div style={{ background: "white", padding: 20, borderRadius: 10, marginBottom: 20 }}>
+      <div style={boxStyle}>
         <h2>🚫 Blacklist</h2>
 
         <input
-          placeholder="Nom"
           value={newBlacklistName}
           onChange={(e) => setNewBlacklistName(e.target.value)}
           style={inputStyle}
         />
 
         <button onClick={handleAddBlacklist} style={btnStyle}>Ajouter</button>
-
-        <ul>
-          {blacklist.map((name, i) => (
-            <li key={i}>
-              {name}
-              <button onClick={() => handleRemoveBlacklist(name)} style={dangerBtn}>❌</button>
-            </li>
-          ))}
-        </ul>
       </div>
 
-      {/* FORMULAIRE */}
-      <div style={{ background: "white", padding: 20, borderRadius: 10, marginBottom: 20 }}>
+      {/* FORMULAIRE CENTRÉ */}
+      <div style={{ ...boxStyle, alignItems: "center" }}>
         <h2>📦 Nouveau prêt</h2>
 
-        <input placeholder="Nom" value={form.name}
+        <input placeholder="Nom"
+          value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           style={inputStyle}
         />
 
-        <input placeholder="Matériel" value={form.type}
+        {/* ✅ MENU DEROUlant */}
+        <select
+          value={form.type}
           onChange={(e) => setForm({ ...form, type: e.target.value })}
           style={inputStyle}
-        />
+        >
+          <option value="">-- Choisir matériel --</option>
+          <option value="PC">PC</option>
+          <option value="Câbles">Câbles</option>
+          <option value="Adaptateur">Adaptateur</option>
+        </select>
 
-        <input placeholder="Code" value={form.code}
+        <input placeholder="Code"
+          value={form.code}
           onChange={(e) => setForm({ ...form, code: e.target.value })}
           style={inputStyle}
         />
@@ -208,30 +203,37 @@ export default function App() {
           style={inputStyle}
         />
 
-        <p>Signature :</p>
-        <SignatureCanvas ref={sigRef} canvasProps={{ width: 300, height: 100, style: { border: "1px solid #ccc" } }} />
+        <p>Signature</p>
+
+        <SignatureCanvas
+          ref={sigRef}
+          canvasProps={{
+            width: 300,
+            height: 100,
+            style: {
+              border: "1px solid #ccc",
+              display: "block",
+              margin: "auto"
+            }
+          }}
+        />
 
         <button onClick={() => sigRef.current.clear()} style={secondaryBtn}>Effacer</button>
-
-        <br /><br />
 
         <button onClick={handleAdd} style={btnStyle}>Ajouter prêt</button>
       </div>
 
       {/* LISTE */}
-      <div style={{ background: "white", padding: 20, borderRadius: 10 }}>
+      <div style={boxStyle}>
         <h2>📋 Liste des prêts</h2>
-
-        {loans.length === 0 && <p>Aucun prêt</p>}
 
         {loans.map((loan) => (
           <div key={loan.id} style={cardStyle}>
 
             <h3>{loan.name}</h3>
 
-            <p>📦 {loan.type}</p>
-            <p>Début : {loan.startDate}</p>
-            <p>Retour : {loan.expectedReturnDate}</p>
+            <p>{loan.type}</p>
+            <p>{loan.startDate} → {loan.expectedReturnDate}</p>
 
             {loan.signature && (
               <img src={loan.signature} style={signatureStyle} />
@@ -239,8 +241,6 @@ export default function App() {
 
             {!loan.returned ? (
               <>
-                <p style={{ color: "orange" }}>En cours</p>
-
                 <SignatureCanvas
                   ref={(ref) => (sigReturnRefs.current[loan.id] = ref)}
                   canvasProps={{ width: 300, height: 100, style: { border: "1px solid #ccc" } }}
@@ -252,7 +252,7 @@ export default function App() {
               </>
             ) : (
               <>
-                <p style={{ color: "green" }}>✅ Rendu le {loan.realReturnDate}</p>
+                <p>✅ Rendu {loan.realReturnDate}</p>
 
                 {loan.returnSignature && (
                   <img src={loan.returnSignature} style={signatureStyle} />
@@ -260,7 +260,9 @@ export default function App() {
               </>
             )}
 
-            <button onClick={() => generatePDF(loan)} style={secondaryBtn}>PDF</button>
+            <button onClick={() => generatePDF(loan)} style={secondaryBtn}>
+              📄 PDF
+            </button>
 
           </div>
         ))}
@@ -271,10 +273,20 @@ export default function App() {
 }
 
 // ✅ STYLES
+const boxStyle = {
+  background: "white",
+  padding: 20,
+  borderRadius: 10,
+  marginBottom: 20,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center"
+};
+
 const btnStyle = {
   background: "#3498db",
   color: "white",
-  padding: "10px 15px",
+  padding: 10,
   border: "none",
   borderRadius: 5,
   cursor: "pointer",
@@ -284,28 +296,16 @@ const btnStyle = {
 const secondaryBtn = {
   background: "#95a5a6",
   color: "white",
-  padding: "8px 12px",
-  border: "none",
+  padding: 8,
   borderRadius: 5,
-  cursor: "pointer",
+  border: "none",
   marginTop: 10
 };
 
-const dangerBtn = {
-  background: "#e74c3c",
-  color: "white",
-  marginLeft: 10,
-  border: "none",
-  borderRadius: 5,
-  cursor: "pointer"
-};
-
 const inputStyle = {
-  display: "block",
-  marginBottom: 10,
+  width: 300,
   padding: 10,
-  width: "100%",
-  maxWidth: 300,
+  marginBottom: 10,
   borderRadius: 5,
   border: "1px solid #ccc"
 };
@@ -315,7 +315,7 @@ const cardStyle = {
   borderRadius: 10,
   padding: 15,
   marginTop: 10,
-  background: "#fafafa"
+  width: 300
 };
 
 const signatureStyle = {
