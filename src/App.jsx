@@ -5,6 +5,8 @@ import { createClient } from "@supabase/supabase-js";
 import logo1 from "./assets/logo1.png";
 import logo2 from "./assets/logo2.png";
 
+// trigger deploy
+
 // ✅ connexion Supabase
 const supabase = createClient(
   "https://drgejcbhcrhmixycuehf.supabase.co",
